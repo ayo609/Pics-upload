@@ -1,0 +1,832 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Admin Dashboard | Onboard3</title>
+    <link rel="preconnect" href="https://fonts.googleapis.com">
+    <link href="https://fonts.googleapis.com/css2?family=Syne:wght@400;600;700;800&family=DM+Sans:ital,wght@0,300;0,400;0,500;1,300&display=swap" rel="stylesheet">
+
+    <!-- Firebase SDKs -->
+    <script type="module">
+        import { initializeApp }                                    from "https://www.gstatic.com/firebasejs/10.8.0/firebase-app.js";
+        import { getFirestore, collection, getDocs, doc, getDoc,
+                 setDoc, updateDoc, deleteDoc }                     from "https://www.gstatic.com/firebasejs/10.8.0/firebase-firestore.js";
+        import { getAuth, signInWithEmailAndPassword,
+                 signOut, onAuthStateChanged,
+                 updatePassword, EmailAuthProvider,
+                 reauthenticateWithCredential,
+                 sendPasswordResetEmail }                           from "https://www.gstatic.com/firebasejs/10.8.0/firebase-auth.js";
+
+        const firebaseConfig = {
+            apiKey:            "AIzaSyBIQS5t2ApxcjI8gZMegi3tgpr5JfQKtJY",
+            authDomain:        "pics-upload-fe1c5.firebaseapp.com",
+            projectId:         "pics-upload-fe1c5",
+            storageBucket:     "pics-upload-fe1c5.firebasestorage.app",
+            messagingSenderId: "82424444503",
+            appId:             "1:82424444503:web:f98101cde123cc749ad512"
+        };
+
+        const app  = initializeApp(firebaseConfig);
+        const db   = getFirestore(app);
+        const auth = getAuth(app);
+
+        window.db  = db;
+        window.auth = auth;
+        window.fsCollection             = collection;
+        window.getDocs                  = getDocs;
+        window.doc                      = doc;
+        window.getDoc                   = getDoc;
+        window.setDoc                   = setDoc;
+        window.updateDoc                = updateDoc;
+        window.deleteDoc                = deleteDoc;
+        window.signInWithEmailAndPassword   = signInWithEmailAndPassword;
+        window.signOut                      = signOut;
+        window.onAuthStateChanged           = onAuthStateChanged;
+        window.updatePassword               = updatePassword;
+        window.EmailAuthProvider            = EmailAuthProvider;
+        window.reauthenticateWithCredential = reauthenticateWithCredential;
+        window.sendPasswordResetEmail       = sendPasswordResetEmail;
+
+        /* ── Auth state listener ── */
+        onAuthStateChanged(auth, (user) => {
+            if (user) {
+                document.getElementById('loginScreen').style.display  = 'none';
+                document.getElementById('dashboard').style.display    = 'block';
+                document.getElementById('adminEmailDisplay').textContent = user.email;
+                if (typeof window.loadAll === 'function') window.loadAll();
+            } else {
+                document.getElementById('loginScreen').style.display  = 'flex';
+                document.getElementById('dashboard').style.display    = 'none';
+            }
+        });
+    </script>
+
+    <style>
+        :root {
+            --bg:          #080810;
+            --surface:     #10101e;
+            --surface2:    #181828;
+            --border:      rgba(255,255,255,0.07);
+            --accent:      #7c3aed;
+            --accent2:     #ff4d1c;
+            --accent-glow: rgba(124,58,237,0.2);
+            --text:        #e8e8f0;
+            --muted:       #6b7280;
+            --success:     #22c55e;
+            --error:       #ef4444;
+            --font-display:'Syne', sans-serif;
+            --font-body:   'DM Sans', sans-serif;
+            --radius:      16px;
+        }
+        * { margin:0; padding:0; box-sizing:border-box; }
+        body { font-family:var(--font-body); background:var(--bg); color:var(--text); min-height:100vh; font-size:.95rem; }
+
+        /* ══ LOGIN ══ */
+        .login-screen {
+            position:fixed; inset:0;
+            display:flex; align-items:center; justify-content:center;
+            background:var(--bg); z-index:9999;
+        }
+        .login-screen::before {
+            content:''; position:absolute; inset:0;
+            background:
+                radial-gradient(ellipse at 20% 50%, rgba(124,58,237,.15) 0%, transparent 60%),
+                radial-gradient(ellipse at 80% 30%, rgba(255,77,28,.10)  0%, transparent 50%);
+            pointer-events:none;
+        }
+        .login-box {
+            background:var(--surface); border:1px solid var(--border);
+            border-radius:28px; padding:44px 40px;
+            width:400px; max-width:92vw;
+            box-shadow:0 30px 80px rgba(0,0,0,.6);
+            position:relative; z-index:1;
+        }
+        .login-logo { font-family:var(--font-display); font-size:1.4rem; font-weight:800; margin-bottom:6px; letter-spacing:-.5px; }
+        .login-logo span { color:var(--accent2); }
+        .login-box h2 { font-family:var(--font-display); font-size:1.6rem; font-weight:700; margin-bottom:4px; }
+        .login-box .subtitle { font-size:.85rem; color:var(--muted); margin-bottom:28px; }
+        .field-label { display:block; font-size:.72rem; font-weight:700; letter-spacing:.8px; text-transform:uppercase; color:var(--muted); margin-bottom:7px; }
+        .input-wrap { position:relative; margin-bottom:16px; }
+        .input-wrap input {
+            width:100%; padding:13px 44px 13px 16px;
+            background:var(--surface2); border:1.5px solid var(--border);
+            border-radius:12px; color:var(--text); font-size:.95rem;
+            font-family:var(--font-body); transition:border-color .2s, box-shadow .2s;
+        }
+        .input-wrap input:focus { outline:none; border-color:var(--accent); box-shadow:0 0 0 3px var(--accent-glow); }
+        .toggle-pw {
+            position:absolute; right:12px; top:50%; transform:translateY(-50%);
+            background:none; border:none; font-size:1.1rem; cursor:pointer;
+            padding:4px; opacity:.6; transition:opacity .2s;
+        }
+        .toggle-pw:hover { opacity:1; }
+        .login-error {
+            background:rgba(239,68,68,.12); border:1px solid rgba(239,68,68,.3);
+            color:#fca5a5; padding:10px 14px; border-radius:10px;
+            font-size:.83rem; margin-bottom:14px; display:none; line-height:1.5;
+        }
+        .login-btn {
+            width:100%; padding:14px; background:var(--accent); color:#fff;
+            border:none; border-radius:12px; font-size:.95rem; font-weight:700;
+            font-family:var(--font-body); cursor:pointer; letter-spacing:.3px;
+            transition:background .2s, transform .15s;
+            display:flex; align-items:center; justify-content:center; gap:8px;
+        }
+        .login-btn:hover:not(:disabled) { background:#6d28d9; }
+        .login-btn:active  { transform:scale(.98); }
+        .login-btn:disabled { opacity:.6; cursor:not-allowed; }
+        .forgot-link {
+            display:block; text-align:center; margin-top:14px;
+            font-size:.82rem; color:var(--muted); cursor:pointer;
+            text-decoration:underline; text-underline-offset:3px; transition:color .2s;
+        }
+        .forgot-link:hover { color:var(--text); }
+
+        /* ══ LAYOUT ══ */
+        .dashboard { display:none; min-height:100vh; }
+        .layout    { display:flex; min-height:100vh; }
+
+        .sidebar {
+            width:230px; background:var(--surface);
+            border-right:1px solid var(--border);
+            display:flex; flex-direction:column; padding:24px 0;
+            position:fixed; top:0; left:0; bottom:0;
+            z-index:100; transition:transform .3s;
+        }
+        .sidebar-logo { font-family:var(--font-display); font-size:1.2rem; font-weight:800; padding:0 20px 24px; border-bottom:1px solid var(--border); letter-spacing:-.3px; }
+        .sidebar-logo span { color:var(--accent2); }
+        .nav-section-label { font-size:.65rem; font-weight:700; letter-spacing:1.2px; text-transform:uppercase; color:var(--muted); padding:20px 20px 8px; }
+        .nav-item { display:flex; align-items:center; gap:10px; padding:10px 20px; color:var(--muted); cursor:pointer; font-size:.88rem; font-weight:500; transition:all .15s; border-left:3px solid transparent; }
+        .nav-item:hover  { color:var(--text); background:rgba(255,255,255,.03); }
+        .nav-item.active { color:var(--text); background:rgba(124,58,237,.10); border-left-color:var(--accent); }
+        .nav-icon { font-size:1rem; width:20px; text-align:center; }
+        .sidebar-footer { margin-top:auto; padding:20px; border-top:1px solid var(--border); }
+        .admin-email-badge { font-size:.75rem; color:var(--muted); margin-bottom:10px; word-break:break-all; padding:6px 10px; background:var(--surface2); border-radius:8px; line-height:1.4; }
+        .admin-email-badge strong { color:var(--text); display:block; margin-bottom:2px; font-size:.7rem; text-transform:uppercase; letter-spacing:.5px; }
+        .logout-btn { width:100%; padding:10px 16px; background:rgba(239,68,68,.10); border:1px solid rgba(239,68,68,.2); border-radius:10px; color:#fca5a5; font-size:.85rem; font-weight:600; cursor:pointer; font-family:var(--font-body); transition:all .2s; }
+        .logout-btn:hover { background:rgba(239,68,68,.2); }
+
+        .main { margin-left:230px; flex:1; display:flex; flex-direction:column; }
+        .topbar { background:var(--surface); border-bottom:1px solid var(--border); padding:16px 28px; display:flex; align-items:center; justify-content:space-between; position:sticky; top:0; z-index:50; }
+        .topbar-title { font-family:var(--font-display); font-size:1.1rem; font-weight:700; }
+        .topbar-actions { display:flex; gap:10px; align-items:center; }
+
+        /* ══ BUTTONS ══ */
+        .btn { padding:8px 16px; border-radius:10px; font-size:.83rem; font-weight:600; cursor:pointer; border:none; font-family:var(--font-body); transition:all .2s; display:inline-flex; align-items:center; gap:6px; }
+        .btn:disabled { opacity:.5; cursor:not-allowed; }
+        .btn-ghost   { background:rgba(255,255,255,.06); color:var(--text); border:1px solid var(--border); }
+        .btn-ghost:hover   { background:rgba(255,255,255,.12); }
+        .btn-primary { background:var(--accent); color:#fff; }
+        .btn-primary:hover { background:#6d28d9; }
+        .btn-success { background:rgba(34,197,94,.15); color:#4ade80; border:1px solid rgba(34,197,94,.25); }
+        .btn-success:hover { background:rgba(34,197,94,.25); }
+        .btn-danger  { background:rgba(239,68,68,.15); color:#fca5a5; border:1px solid rgba(239,68,68,.25); }
+        .btn-danger:hover  { background:rgba(239,68,68,.25); }
+
+        /* ══ PAGES ══ */
+        .page { display:none; padding:28px; }
+        .page.active { display:block; }
+
+        /* ══ STATS ══ */
+        .stats-grid { display:grid; grid-template-columns:repeat(auto-fit,minmax(200px,1fr)); gap:16px; margin-bottom:28px; }
+        .stat-card { background:var(--surface); border:1px solid var(--border); border-radius:var(--radius); padding:22px; position:relative; overflow:hidden; }
+        .stat-card::after { content:''; position:absolute; top:-20px; right:-20px; width:80px; height:80px; border-radius:50%; opacity:.08; }
+        .stat-card.purple::after { background:var(--accent); }
+        .stat-card.orange::after { background:var(--accent2); }
+        .stat-card.green::after  { background:var(--success); }
+        .stat-card.blue::after   { background:#3b82f6; }
+        .stat-icon  { font-size:1.6rem; margin-bottom:12px; }
+        .stat-label { font-size:.72rem; text-transform:uppercase; letter-spacing:.8px; color:var(--muted); margin-bottom:6px; font-weight:600; }
+        .stat-value { font-family:var(--font-display); font-size:2.2rem; font-weight:800; letter-spacing:-1px; }
+        .stat-sub   { font-size:.75rem; color:var(--muted); margin-top:4px; }
+
+        /* ══ CARDS ══ */
+        .section-card { background:var(--surface); border:1px solid var(--border); border-radius:var(--radius); overflow:hidden; margin-bottom:20px; }
+        .section-header { padding:18px 22px; border-bottom:1px solid var(--border); display:flex; align-items:center; justify-content:space-between; flex-wrap:wrap; gap:12px; }
+        .section-header h3 { font-family:var(--font-display); font-size:1rem; font-weight:700; }
+        .section-body { padding:22px; }
+
+        /* ══ FORMS ══ */
+        .settings-grid { display:grid; grid-template-columns:1fr 1fr; gap:16px; margin-bottom:16px; }
+        @media(max-width:600px){ .settings-grid{ grid-template-columns:1fr; } }
+        .form-group { display:flex; flex-direction:column; gap:7px; }
+        .form-control { padding:11px 14px; background:var(--surface2); border:1.5px solid var(--border); border-radius:10px; color:var(--text); font-size:.9rem; font-family:var(--font-body); transition:border-color .2s; }
+        .form-control:focus { outline:none; border-color:var(--accent); }
+
+        /* ══ ACTION BAR ══ */
+        .action-bar { display:flex; gap:12px; align-items:center; flex-wrap:wrap; margin-bottom:16px; }
+        .search-wrap { flex:1; min-width:240px; position:relative; }
+        .search-wrap input { width:100%; padding:10px 14px 10px 38px; background:var(--surface); border:1.5px solid var(--border); border-radius:10px; color:var(--text); font-size:.88rem; font-family:var(--font-body); }
+        .search-wrap input:focus { outline:none; border-color:var(--accent); }
+        .s-icon { position:absolute; left:12px; top:50%; transform:translateY(-50%); color:var(--muted); }
+
+        /* ══ CHIPS ══ */
+        .filter-chips { display:flex; gap:8px; flex-wrap:wrap; margin-bottom:16px; }
+        .chip { padding:5px 14px; border-radius:30px; font-size:.78rem; font-weight:600; cursor:pointer; border:1px solid var(--border); background:var(--surface2); color:var(--muted); transition:all .15s; }
+        .chip.active { background:var(--accent); border-color:var(--accent); color:#fff; }
+
+        /* ══ TABLE ══ */
+        .table-wrap { overflow-x:auto; }
+        table { width:100%; border-collapse:collapse; min-width:700px; }
+        thead { background:var(--surface2); }
+        th { padding:12px 14px; text-align:left; font-size:.72rem; font-weight:700; text-transform:uppercase; letter-spacing:.7px; color:var(--muted); white-space:nowrap; border-bottom:1px solid var(--border); }
+        td { padding:13px 14px; border-bottom:1px solid var(--border); vertical-align:middle; font-size:.88rem; }
+        tr:hover td { background:rgba(255,255,255,.02); }
+        tr:last-child td { border-bottom:none; }
+        .reg-code { font-family:monospace; font-size:.82rem; font-weight:700; color:#a78bfa; background:rgba(124,58,237,.1); padding:3px 8px; border-radius:6px; white-space:nowrap; }
+        .photo-thumb { width:40px; height:40px; border-radius:50%; object-fit:cover; border:2px solid var(--border); cursor:pointer; transition:border-color .2s; }
+        .photo-thumb:hover { border-color:var(--accent); }
+        .no-photo { width:40px; height:40px; border-radius:50%; background:var(--surface2); display:flex; align-items:center; justify-content:center; font-size:1rem; border:2px solid var(--border); }
+        .name-cell  { font-weight:600; }
+        .bio-cell   { color:var(--muted); font-size:.82rem; max-width:180px; }
+        .dl-count   { font-weight:700; }
+        .date-cell  { font-size:.78rem; color:var(--muted); white-space:nowrap; }
+        .badge      { display:inline-flex; align-items:center; padding:3px 10px; border-radius:20px; font-size:.75rem; font-weight:600; }
+        .badge-purple { background:rgba(124,58,237,.15); color:#c4b5fd; }
+        .empty-state { text-align:center; padding:60px 20px; color:var(--muted); }
+        .empty-icon  { font-size:2.5rem; margin-bottom:12px; }
+
+        /* ══ PAGINATION ══ */
+        .pagination { display:flex; align-items:center; justify-content:space-between; padding:14px 22px; border-top:1px solid var(--border); font-size:.82rem; color:var(--muted); flex-wrap:wrap; gap:10px; }
+        .pagination-btns { display:flex; gap:6px; }
+        .pg-btn { padding:5px 12px; border-radius:8px; background:var(--surface2); border:1px solid var(--border); color:var(--text); font-size:.82rem; cursor:pointer; }
+        .pg-btn:hover  { background:var(--accent); border-color:var(--accent); }
+        .pg-btn.active { background:var(--accent); border-color:var(--accent); }
+        .pg-btn:disabled { opacity:.35; cursor:not-allowed; }
+
+        /* ══ MODALS ══ */
+        .modal-backdrop { position:fixed; inset:0; background:rgba(0,0,0,.8); display:flex; align-items:center; justify-content:center; z-index:2000; padding:20px; animation:fadeIn .2s ease; }
+        @keyframes fadeIn { from{opacity:0} to{opacity:1} }
+        .modal { background:var(--surface); border:1px solid var(--border); border-radius:24px; width:100%; max-width:520px; max-height:90vh; overflow-y:auto; animation:slideUp .25s cubic-bezier(.34,1.2,.64,1); }
+        @keyframes slideUp { from{transform:translateY(20px);opacity:0} to{transform:translateY(0);opacity:1} }
+        .modal-header { padding:20px 24px; border-bottom:1px solid var(--border); display:flex; align-items:center; justify-content:space-between; }
+        .modal-header h3 { font-family:var(--font-display); font-weight:700; }
+        .modal-close { background:none; border:none; color:var(--muted); font-size:1.2rem; cursor:pointer; padding:4px; }
+        .modal-close:hover { color:var(--text); }
+        .modal-body   { padding:24px; }
+        .modal-footer { padding:16px 24px; border-top:1px solid var(--border); display:flex; gap:10px; justify-content:flex-end; }
+        .confirm-modal { max-width:380px; text-align:center; }
+        .confirm-modal .modal-body { padding:32px 24px; }
+        .confirm-icon  { font-size:2.5rem; margin-bottom:12px; }
+        .confirm-modal h3 { font-family:var(--font-display); font-size:1.2rem; margin-bottom:8px; }
+        .confirm-modal p  { color:var(--muted); font-size:.88rem; margin-bottom:20px; }
+        .confirm-actions  { display:flex; gap:10px; justify-content:center; }
+        .attendee-detail-header { display:flex; gap:16px; align-items:center; margin-bottom:24px; }
+        .attendee-detail-avatar { width:80px; height:80px; border-radius:50%; object-fit:cover; border:3px solid var(--accent); }
+        .attendee-detail-ph { width:80px; height:80px; border-radius:50%; background:var(--surface2); display:flex; align-items:center; justify-content:center; font-size:2rem; border:3px solid var(--border); }
+        .detail-grid { display:grid; grid-template-columns:1fr 1fr; gap:14px; margin-bottom:20px; }
+        .detail-item label { display:block; font-size:.68rem; font-weight:700; letter-spacing:.8px; text-transform:uppercase; color:var(--muted); margin-bottom:4px; }
+        .detail-item .val  { font-size:.9rem; font-weight:500; word-break:break-word; }
+
+        /* ══ IMAGE FULL VIEW ══ */
+        .image-backdrop { position:fixed; inset:0; background:rgba(0,0,0,.95); display:flex; align-items:center; justify-content:center; z-index:3000; cursor:pointer; }
+        .image-backdrop img { max-width:90vw; max-height:90vh; border-radius:12px; object-fit:contain; }
+
+        /* ══ TOAST ══ */
+        .toast-stack { position:fixed; bottom:24px; right:24px; display:flex; flex-direction:column; gap:8px; z-index:9999; pointer-events:none; }
+        .toast { background:var(--surface); border:1px solid var(--border); color:var(--text); padding:11px 18px; border-radius:12px; font-size:.84rem; font-weight:500; box-shadow:0 8px 30px rgba(0,0,0,.5); animation:toastIn .3s cubic-bezier(.34,1.4,.64,1) forwards; border-left:3px solid transparent; max-width:300px; }
+        .toast.success { border-left-color:var(--success); }
+        .toast.error   { border-left-color:var(--error); }
+        .toast.info    { border-left-color:var(--accent); }
+        @keyframes toastIn  { from{opacity:0;transform:translateX(20px)} to{opacity:1;transform:translateX(0)} }
+        @keyframes toastOut { from{opacity:1;transform:translateX(0)}    to{opacity:0;transform:translateX(20px)} }
+
+        /* ══ SPINNER ══ */
+        .spinner { display:inline-block; width:16px; height:16px; border:2px solid rgba(255,255,255,.2); border-top-color:#fff; border-radius:50%; animation:spin .7s linear infinite; }
+        @keyframes spin { to{transform:rotate(360deg)} }
+
+        /* ══ MOBILE ══ */
+        .mob-menu-btn { display:none; background:none; border:none; color:var(--text); font-size:1.3rem; cursor:pointer; }
+        .sidebar-overlay { display:none; position:fixed; inset:0; background:rgba(0,0,0,.6); z-index:99; }
+        @media(max-width:768px){
+            .sidebar { transform:translateX(-100%); }
+            .sidebar.open { transform:translateX(0); }
+            .sidebar-overlay.open { display:block; }
+            .main { margin-left:0; }
+            .mob-menu-btn { display:block; }
+            .page { padding:16px; }
+            .detail-grid { grid-template-columns:1fr; }
+            .toast-stack { bottom:16px; right:16px; left:16px; }
+        }
+    </style>
+</head>
+<body>
+
+<!-- ══════════════ LOGIN ══════════════ -->
+<div id="loginScreen" class="login-screen">
+    <div class="login-box">
+        <div class="login-logo">onboard<span>3</span></div>
+        <h2>Admin Login</h2>
+        <p class="subtitle">Sign in with your Firebase admin account</p>
+
+        <div id="loginError" class="login-error"></div>
+
+        <label class="field-label">Email Address</label>
+        <div class="input-wrap">
+            <input type="email" id="adminEmail" placeholder="admin@example.com" autocomplete="email">
+        </div>
+
+        <label class="field-label">Password</label>
+        <div class="input-wrap">
+            <input type="password" id="adminPassword" placeholder="Enter your password" autocomplete="current-password">
+            <button class="toggle-pw" id="togglePwBtn" type="button">👁️</button>
+        </div>
+
+        <button class="login-btn" id="loginBtn">Login →</button>
+        <span class="forgot-link" id="forgotLink">Forgot password? Send reset email</span>
+    </div>
+</div>
+
+<!-- ══════════════ DASHBOARD ══════════════ -->
+<div id="dashboard" class="dashboard">
+    <div class="layout">
+
+        <aside class="sidebar" id="sidebar">
+            <div class="sidebar-logo">onboard<span>3</span></div>
+            <div class="nav-section-label">Overview</div>
+            <div class="nav-item active" data-page="overview"   onclick="navigateTo('overview')">  <span class="nav-icon">📊</span> Dashboard</div>
+            <div class="nav-item"        data-page="attendees"  onclick="navigateTo('attendees')"> <span class="nav-icon">👥</span> Attendees</div>
+            <div class="nav-section-label">Configuration</div>
+            <div class="nav-item"        data-page="settings"   onclick="navigateTo('settings')">  <span class="nav-icon">⚙️</span> Event Settings</div>
+            <div class="nav-item"        data-page="account"    onclick="navigateTo('account')">   <span class="nav-icon">🔐</span> My Account</div>
+            <div class="sidebar-footer">
+                <div class="admin-email-badge">
+                    <strong>Logged in as</strong>
+                    <span id="adminEmailDisplay">—</span>
+                </div>
+                <button class="logout-btn" onclick="doLogout()">🚪 Sign Out</button>
+            </div>
+        </aside>
+
+        <div class="sidebar-overlay" id="sidebarOverlay" onclick="closeSidebar()"></div>
+
+        <main class="main">
+            <div class="topbar">
+                <div style="display:flex;align-items:center;gap:12px;">
+                    <button class="mob-menu-btn" onclick="openSidebar()">☰</button>
+                    <span class="topbar-title" id="topbarTitle">Dashboard</span>
+                </div>
+                <div class="topbar-actions">
+                    <button class="btn btn-ghost" onclick="doRefresh()">🔄 Refresh</button>
+                </div>
+            </div>
+
+            <!-- OVERVIEW -->
+            <div class="page active" id="page-overview">
+                <div class="stats-grid">
+                    <div class="stat-card purple"><div class="stat-icon">👥</div><div class="stat-label">Total Attendees</div><div class="stat-value" id="stat-total">—</div><div class="stat-sub">all-time registrations</div></div>
+                    <div class="stat-card orange"><div class="stat-icon">⬇️</div><div class="stat-label">Total Downloads</div><div class="stat-value" id="stat-downloads">—</div><div class="stat-sub">cards downloaded</div></div>
+                    <div class="stat-card green"> <div class="stat-icon">📅</div><div class="stat-label">Today's Sign-ups</div><div class="stat-value" id="stat-today">—</div><div class="stat-sub">registered today</div></div>
+                    <div class="stat-card blue">  <div class="stat-icon">📸</div><div class="stat-label">With Photo</div><div class="stat-value" id="stat-photos">—</div><div class="stat-sub">uploaded profile photo</div></div>
+                </div>
+                <div class="section-card">
+                    <div class="section-header">
+                        <h3>🕒 Recent Registrations</h3>
+                        <button class="btn btn-ghost" onclick="navigateTo('attendees')">View All →</button>
+                    </div>
+                    <div class="table-wrap">
+                        <table>
+                            <thead><tr><th>Code</th><th>Photo</th><th>Name</th><th>Role</th><th>Registered</th></tr></thead>
+                            <tbody id="recentBody"><tr><td colspan="5"><div class="empty-state"><div class="empty-icon">⏳</div><p>Loading…</p></div></td></tr></tbody>
+                        </table>
+                    </div>
+                </div>
+            </div>
+
+            <!-- ATTENDEES -->
+            <div class="page" id="page-attendees">
+                <div class="action-bar">
+                    <div class="search-wrap">
+                        <span class="s-icon">🔍</span>
+                        <input type="text" id="searchInput" placeholder="Search by name, code, phone or role…" oninput="handleSearch()">
+                    </div>
+                    <button class="btn btn-success" onclick="exportCSV()">📥 Export CSV</button>
+                    <button class="btn btn-ghost"   onclick="exportJSON()">📋 Export JSON</button>
+                </div>
+                <div class="filter-chips">
+                    <div class="chip active" data-filter="all"        onclick="setFilter('all',this)">All</div>
+                    <div class="chip"        data-filter="photo"      onclick="setFilter('photo',this)">With Photo</div>
+                    <div class="chip"        data-filter="downloaded" onclick="setFilter('downloaded',this)">Downloaded</div>
+                    <div class="chip"        data-filter="today"      onclick="setFilter('today',this)">Today</div>
+                </div>
+                <div class="section-card">
+                    <div class="section-header">
+                        <h3>👥 Attendees <span id="tableCount" style="color:var(--muted);font-size:.85rem;font-weight:400;"></span></h3>
+                    </div>
+                    <div class="table-wrap">
+                        <table>
+                            <thead><tr><th>Reg. Code</th><th>Photo</th><th>Full Name</th><th>Phone</th><th>Role</th><th>Bio</th><th>DL</th><th>Registered</th><th>Actions</th></tr></thead>
+                            <tbody id="tableBody"><tr><td colspan="9"><div class="empty-state"><div class="empty-icon">⏳</div><p>Loading…</p></div></td></tr></tbody>
+                        </table>
+                    </div>
+                    <div class="pagination" id="pagination"></div>
+                </div>
+            </div>
+
+            <!-- SETTINGS -->
+            <div class="page" id="page-settings">
+                <div class="section-card">
+                    <div class="section-header"><h3>⚙️ Event Settings</h3></div>
+                    <div class="section-body">
+                        <div class="settings-grid">
+                            <div class="form-group"><label class="field-label">Event Name</label><input type="text" class="form-control" id="eventNameInput" placeholder="e.g. Onboard3 Campus Meetup"></div>
+                            <div class="form-group"><label class="field-label">Registration Prefix</label><input type="text" class="form-control" id="prefixInput" placeholder="e.g. ONB3" maxlength="8"></div>
+                        </div>
+                        <p style="font-size:.8rem;color:var(--muted);margin-bottom:16px;">⚠️ Changing the prefix only affects new registrations.</p>
+                        <button class="btn btn-primary" onclick="saveSettings()">💾 Save Settings</button>
+                    </div>
+                </div>
+                <div class="section-card" style="border-color:rgba(239,68,68,.2);">
+                    <div class="section-header" style="border-color:rgba(239,68,68,.2);"><h3 style="color:#fca5a5;">⚠️ Danger Zone</h3></div>
+                    <div class="section-body">
+                        <p style="font-size:.85rem;color:var(--muted);margin-bottom:14px;">Permanently delete ALL attendee records. This cannot be undone.</p>
+                        <button class="btn btn-danger" onclick="confirmDeleteAll()">🗑️ Delete All Attendees</button>
+                    </div>
+                </div>
+            </div>
+
+            <!-- ACCOUNT -->
+            <div class="page" id="page-account">
+                <div class="section-card">
+                    <div class="section-header"><h3>🔐 Change Password</h3></div>
+                    <div class="section-body">
+                        <p style="font-size:.85rem;color:var(--muted);margin-bottom:20px;">Re-enter your current password for security before setting a new one.</p>
+                        <div class="settings-grid">
+                            <div class="form-group"><label class="field-label">Current Password</label><input type="password" class="form-control" id="currentPwInput" placeholder="Your current password"></div>
+                            <div></div>
+                            <div class="form-group"><label class="field-label">New Password</label><input type="password" class="form-control" id="newPwInput" placeholder="At least 8 characters"></div>
+                            <div class="form-group"><label class="field-label">Confirm New Password</label><input type="password" class="form-control" id="confirmPwInput" placeholder="Repeat new password"></div>
+                        </div>
+                        <button class="btn btn-primary" id="changePwBtn" onclick="doChangePassword()">🔒 Update Password</button>
+                    </div>
+                </div>
+                <div class="section-card">
+                    <div class="section-header"><h3>📧 Reset Password by Email</h3></div>
+                    <div class="section-body">
+                        <p style="font-size:.85rem;color:var(--muted);margin-bottom:14px;">Sends a Firebase password-reset link to your admin email address.</p>
+                        <button class="btn btn-ghost" onclick="doSendReset()">📨 Send Reset Email</button>
+                    </div>
+                </div>
+            </div>
+
+        </main>
+    </div>
+</div>
+
+<div id="imageBackdrop" class="image-backdrop" style="display:none;" onclick="closeImageView()">
+    <img id="imageFullView" src="" alt="Attendee photo">
+</div>
+<div class="toast-stack" id="toastStack"></div>
+
+<script type="module">
+/* ═══ STATE ═══ */
+let allUsers = [], filteredUsers = [], currentFilter = 'all', searchTerm = '', currentPage = 1;
+const PAGE_SIZE = 20;
+
+/* ═══ TOAST ═══ */
+function toast(msg, type = 'info', duration = 3500) {
+    const el = document.createElement('div');
+    el.className = `toast ${type}`; el.textContent = msg;
+    document.getElementById('toastStack').appendChild(el);
+    setTimeout(() => { el.style.animation = 'toastOut .3s forwards'; setTimeout(() => el.remove(), 300); }, duration);
+}
+
+/* ═══ MODALS ═══ */
+function showConfirm(icon, title, message, onConfirm) {
+    const bd = document.createElement('div'); bd.className = 'modal-backdrop';
+    bd.innerHTML = `<div class="modal confirm-modal"><div class="modal-body"><div class="confirm-icon">${icon}</div><h3>${title}</h3><p>${message}</p><div class="confirm-actions"><button class="btn btn-ghost" id="cancelBtn">Cancel</button><button class="btn btn-danger" id="okBtn">Confirm</button></div></div></div>`;
+    document.body.appendChild(bd);
+    bd.querySelector('#cancelBtn').onclick = () => bd.remove();
+    bd.querySelector('#okBtn').onclick     = () => { bd.remove(); onConfirm(); };
+}
+
+function showAttendeeDetail(user) {
+    const bd = document.createElement('div'); bd.className = 'modal-backdrop';
+    const photoHtml = user.photoBase64 ? `<img class="attendee-detail-avatar" src="${user.photoBase64}" onclick="viewImage('${user.photoBase64}')" style="cursor:pointer">` : `<div class="attendee-detail-ph">👤</div>`;
+    const created = user.createdAt ? user.createdAt.toDate().toLocaleString() : '—';
+    const updated = user.updatedAt ? user.updatedAt.toDate().toLocaleString() : '—';
+    bd.innerHTML = `
+        <div class="modal">
+            <div class="modal-header"><h3>👤 Attendee Details</h3><button class="modal-close" onclick="this.closest('.modal-backdrop').remove()">✕</button></div>
+            <div class="modal-body">
+                <div class="attendee-detail-header">${photoHtml}<div>
+                    <div style="font-family:var(--font-display);font-size:1.15rem;font-weight:700;">${user.fullName || '—'}</div>
+                    <div style="margin-top:4px;"><span class="reg-code">${user.registrationCode}</span></div>
+                    ${user.role ? `<div style="margin-top:6px;font-size:.82rem;color:var(--muted);">${user.role}</div>` : ''}
+                </div></div>
+                <div class="detail-grid">
+                    <div class="detail-item"><label>Phone</label><div class="val">${user.phoneNumber || '—'}</div></div>
+                    <div class="detail-item"><label>Downloads</label><div class="val">${user.downloadCount || 0}</div></div>
+                    <div class="detail-item" style="grid-column:span 2"><label>Bio</label><div class="val">${user.bio || '—'}</div></div>
+                    <div class="detail-item"><label>Registered</label><div class="val" style="font-size:.82rem;">${created}</div></div>
+                    <div class="detail-item"><label>Last Updated</label><div class="val" style="font-size:.82rem;">${updated}</div></div>
+                </div>
+            </div>
+            <div class="modal-footer">
+                <button class="btn btn-danger" onclick="deleteUser('${user.registrationCode}');this.closest('.modal-backdrop').remove()">🗑️ Delete</button>
+                <button class="btn btn-ghost" onclick="this.closest('.modal-backdrop').remove()">Close</button>
+            </div>
+        </div>`;
+    document.body.appendChild(bd);
+}
+
+/* ═══ NAVIGATION ═══ */
+const pageTitles = { overview:'Dashboard', attendees:'Attendees', settings:'Event Settings', account:'My Account' };
+window.navigateTo = function(page) {
+    document.querySelectorAll('.page').forEach(p => p.classList.remove('active'));
+    document.querySelectorAll('.nav-item').forEach(n => n.classList.remove('active'));
+    document.getElementById(`page-${page}`).classList.add('active');
+    document.querySelector(`.nav-item[data-page="${page}"]`).classList.add('active');
+    document.getElementById('topbarTitle').textContent = pageTitles[page] || page;
+    closeSidebar();
+};
+window.openSidebar  = () => { document.getElementById('sidebar').classList.add('open');    document.getElementById('sidebarOverlay').classList.add('open'); };
+window.closeSidebar = () => { document.getElementById('sidebar').classList.remove('open'); document.getElementById('sidebarOverlay').classList.remove('open'); };
+
+/* ═══ AUTH ═══ */
+function friendlyAuthError(code) {
+    const map = {
+        'auth/invalid-email':          'That email address is not valid.',
+        'auth/user-not-found':         'No admin account found with that email.',
+        'auth/wrong-password':         'Incorrect password. Please try again.',
+        'auth/invalid-credential':     'Incorrect email or password.',
+        'auth/too-many-requests':      'Too many failed attempts. Please wait a moment then try again.',
+        'auth/network-request-failed': 'Network error. Check your internet connection.',
+        'auth/user-disabled':          'This account has been disabled.',
+        'auth/requires-recent-login':  'Please sign out and sign back in before changing your password.',
+    };
+    return map[code] || 'Authentication failed. Please try again.';
+}
+
+function setLoginLoading(loading) {
+    const btn = document.getElementById('loginBtn');
+    btn.disabled  = loading;
+    btn.innerHTML = loading ? '<span class="spinner"></span> Signing in…' : 'Login →';
+}
+
+/* Login */
+document.getElementById('loginBtn').addEventListener('click', doLogin);
+document.getElementById('adminPassword').addEventListener('keydown', e => { if (e.key === 'Enter') doLogin(); });
+document.getElementById('adminEmail').addEventListener('keydown',    e => { if (e.key === 'Enter') document.getElementById('adminPassword').focus(); });
+
+async function doLogin() {
+    const email = document.getElementById('adminEmail').value.trim();
+    const pw    = document.getElementById('adminPassword').value;
+    const errEl = document.getElementById('loginError');
+
+    if (!email || !pw) { errEl.textContent = 'Please enter your email and password.'; errEl.style.display = 'block'; return; }
+    errEl.style.display = 'none';
+    setLoginLoading(true);
+    try {
+        await window.signInWithEmailAndPassword(window.auth, email, pw);
+        /* onAuthStateChanged handles UI transition */
+    } catch (err) {
+        errEl.textContent      = friendlyAuthError(err.code);
+        errEl.style.display    = 'block';
+        document.getElementById('adminPassword').value = '';
+    } finally {
+        setLoginLoading(false);
+    }
+}
+
+/* Logout */
+window.doLogout = function() {
+    showConfirm('🚪', 'Sign Out', 'Are you sure you want to sign out?', async () => {
+        await window.signOut(window.auth);
+        document.getElementById('adminEmail').value    = '';
+        document.getElementById('adminPassword').value = '';
+        toast('✅ Signed out successfully', 'success');
+    });
+};
+
+/* Toggle password visibility */
+document.getElementById('togglePwBtn').addEventListener('click', () => {
+    const inp = document.getElementById('adminPassword');
+    inp.type = inp.type === 'password' ? 'text' : 'password';
+    document.getElementById('togglePwBtn').textContent = inp.type === 'password' ? '👁️' : '🙈';
+});
+
+/* Forgot / Reset password */
+document.getElementById('forgotLink').addEventListener('click', doSendReset);
+window.doSendReset = async function() {
+    const email = window.auth.currentUser?.email || document.getElementById('adminEmail').value.trim();
+    if (!email) { toast('⚠️ Enter your email address first', 'error'); return; }
+    try {
+        await window.sendPasswordResetEmail(window.auth, email);
+        toast(`✅ Reset email sent to ${email}`, 'success', 5000);
+    } catch(err) {
+        toast('❌ ' + friendlyAuthError(err.code), 'error');
+    }
+};
+
+/* Change password (with re-authentication) */
+window.doChangePassword = async function() {
+    const currentPw = document.getElementById('currentPwInput').value;
+    const newPw     = document.getElementById('newPwInput').value;
+    const confirmPw = document.getElementById('confirmPwInput').value;
+
+    if (!currentPw)          { toast('⚠️ Enter your current password', 'error');           return; }
+    if (newPw.length < 8)    { toast('⚠️ New password must be at least 8 characters', 'error'); return; }
+    if (newPw !== confirmPw) { toast('⚠️ New passwords do not match', 'error');             return; }
+
+    const btn = document.getElementById('changePwBtn');
+    btn.disabled = true; btn.innerHTML = '<span class="spinner"></span> Updating…';
+
+    try {
+        const user       = window.auth.currentUser;
+        const credential = window.EmailAuthProvider.credential(user.email, currentPw);
+        await window.reauthenticateWithCredential(user, credential); /* re-auth first */
+        await window.updatePassword(user, newPw);
+
+        ['currentPwInput','newPwInput','confirmPwInput'].forEach(id => document.getElementById(id).value = '');
+        toast('✅ Password updated successfully!', 'success');
+    } catch(err) {
+        const msg = (err.code === 'auth/wrong-password' || err.code === 'auth/invalid-credential')
+            ? '❌ Current password is incorrect'
+            : '❌ ' + friendlyAuthError(err.code);
+        toast(msg, 'error');
+    } finally {
+        btn.disabled = false; btn.innerHTML = '🔒 Update Password';
+    }
+};
+
+/* ═══ DATA ═══ */
+window.loadAll = async function() { await Promise.all([loadSettings(), loadUsers()]); };
+
+async function loadSettings() {
+    try {
+        const snap = await window.getDoc(window.doc(window.db, 'app_settings', 'current'));
+        if (snap.exists()) {
+            const d = snap.data();
+            document.getElementById('eventNameInput').value = d.eventName || '';
+            document.getElementById('prefixInput').value    = d.registrationPrefix || 'ONB3';
+        }
+    } catch(e) { console.error('Settings load failed', e); }
+}
+
+async function loadUsers() {
+    try {
+        const snap = await window.getDocs(window.fsCollection(window.db, 'attendees'));
+        allUsers = [];
+        snap.forEach(d => {
+            const data = d.data();
+            if (data.registrationCode || data.fullName) allUsers.push({ id:d.id, ...data, registrationCode: data.registrationCode || d.id });
+        });
+        allUsers.sort((a,b) => (b.createdAt?.toDate()?.getTime()||0) - (a.createdAt?.toDate()?.getTime()||0));
+        updateStats(); applyFilters(); renderRecent();
+    } catch(e) { console.error('Users load failed', e); toast('❌ Failed to load attendee data', 'error'); }
+}
+
+window.doRefresh = async function() { toast('🔄 Refreshing…','info'); await loadAll(); toast('✅ Data refreshed','success'); };
+
+/* ═══ STATS ═══ */
+function updateStats() {
+    const todayStart = new Date(); todayStart.setHours(0,0,0,0);
+    document.getElementById('stat-total').textContent     = allUsers.length;
+    document.getElementById('stat-downloads').textContent = allUsers.reduce((s,u) => s+(u.downloadCount||0), 0);
+    document.getElementById('stat-photos').textContent    = allUsers.filter(u => u.photoBase64).length;
+    document.getElementById('stat-today').textContent     = allUsers.filter(u => {
+        if (!u.createdAt) return false;
+        const d = u.createdAt.toDate(); d.setHours(0,0,0,0);
+        return d.getTime() === todayStart.getTime();
+    }).length;
+}
+
+/* ═══ RECENT ═══ */
+function renderRecent() {
+    const tbody = document.getElementById('recentBody');
+    if (!allUsers.length) { tbody.innerHTML=`<tr><td colspan="5"><div class="empty-state"><div class="empty-icon">📭</div><p>No registrations yet</p></div></td></tr>`; return; }
+    tbody.innerHTML = allUsers.slice(0,8).map(u => `
+        <tr onclick="showDetail('${u.registrationCode}')" style="cursor:pointer;">
+            <td><span class="reg-code">${u.registrationCode}</span></td>
+            <td>${u.photoBase64 ? `<img class="photo-thumb" src="${u.photoBase64}" alt="">` : `<div class="no-photo">👤</div>`}</td>
+            <td class="name-cell">${u.fullName||'—'}</td>
+            <td>${u.role ? `<span class="badge badge-purple">${u.role}</span>` : '—'}</td>
+            <td class="date-cell">${u.createdAt ? u.createdAt.toDate().toLocaleDateString() : '—'}</td>
+        </tr>`).join('');
+}
+
+/* ═══ FILTERS ═══ */
+window.setFilter = function(filter, el) {
+    currentFilter = filter; currentPage = 1;
+    document.querySelectorAll('.chip').forEach(c => c.classList.remove('active')); el.classList.add('active');
+    applyFilters();
+};
+window.handleSearch = function() { searchTerm = document.getElementById('searchInput').value.toLowerCase(); currentPage = 1; applyFilters(); };
+
+function applyFilters() {
+    const todayStart = new Date(); todayStart.setHours(0,0,0,0);
+    filteredUsers = allUsers.filter(u => {
+        if (currentFilter === 'photo'      && !u.photoBase64) return false;
+        if (currentFilter === 'downloaded' && !(u.downloadCount > 0)) return false;
+        if (currentFilter === 'today') {
+            if (!u.createdAt) return false;
+            const d = u.createdAt.toDate(); d.setHours(0,0,0,0);
+            if (d.getTime() !== todayStart.getTime()) return false;
+        }
+        if (searchTerm) {
+            const hay = [u.registrationCode, u.fullName, u.phoneNumber, u.role, u.bio].join(' ').toLowerCase();
+            if (!hay.includes(searchTerm)) return false;
+        }
+        return true;
+    });
+    document.getElementById('tableCount').textContent = `(${filteredUsers.length})`;
+    renderTable();
+}
+
+/* ═══ TABLE ═══ */
+function renderTable() {
+    const tbody = document.getElementById('tableBody');
+    if (!filteredUsers.length) { tbody.innerHTML=`<tr><td colspan="9"><div class="empty-state"><div class="empty-icon">📭</div><p>No attendees found</p></div></td></tr>`; document.getElementById('pagination').innerHTML=''; return; }
+    const pageUsers = filteredUsers.slice((currentPage-1)*PAGE_SIZE, currentPage*PAGE_SIZE);
+    tbody.innerHTML = pageUsers.map(u => `
+        <tr>
+            <td><span class="reg-code">${u.registrationCode}</span></td>
+            <td>${u.photoBase64 ? `<img class="photo-thumb" src="${u.photoBase64}" onclick="viewImage('${u.photoBase64}')">` : `<div class="no-photo">👤</div>`}</td>
+            <td class="name-cell" style="cursor:pointer;" onclick="showDetail('${u.registrationCode}')">${u.fullName||'—'}</td>
+            <td style="font-size:.82rem;">${u.phoneNumber||'—'}</td>
+            <td>${u.role ? `<span class="badge badge-purple">${u.role}</span>` : '—'}</td>
+            <td class="bio-cell">${u.bio ? (u.bio.length>50 ? u.bio.slice(0,50)+'…' : u.bio) : '—'}</td>
+            <td><span class="dl-count">${u.downloadCount||0}</span></td>
+            <td class="date-cell">${u.createdAt ? u.createdAt.toDate().toLocaleString() : '—'}</td>
+            <td><div style="display:flex;gap:6px;">
+                <button class="btn btn-ghost"  style="padding:5px 10px;font-size:.75rem;" onclick="showDetail('${u.registrationCode}')">👁 View</button>
+                <button class="btn btn-danger" style="padding:5px 10px;font-size:.75rem;" onclick="deleteUser('${u.registrationCode}')">🗑</button>
+            </div></td>
+        </tr>`).join('');
+    renderPagination();
+}
+
+function renderPagination() {
+    const total = filteredUsers.length, totalPages = Math.ceil(total/PAGE_SIZE);
+    const pg = document.getElementById('pagination');
+    if (totalPages <= 1) { pg.innerHTML=`<span>Showing ${total} of ${total}</span>`; return; }
+    const start = (currentPage-1)*PAGE_SIZE+1, end = Math.min(currentPage*PAGE_SIZE, total);
+    let btns = '';
+    for (let i=1; i<=totalPages; i++) btns += `<button class="pg-btn ${i===currentPage?'active':''}" onclick="goToPage(${i})">${i}</button>`;
+    pg.innerHTML = `<span>Showing ${start}–${end} of ${total}</span><div class="pagination-btns"><button class="pg-btn" onclick="goToPage(${currentPage-1})" ${currentPage===1?'disabled':''}>‹ Prev</button>${btns}<button class="pg-btn" onclick="goToPage(${currentPage+1})" ${currentPage===totalPages?'disabled':''}>Next ›</button></div>`;
+}
+
+window.goToPage = function(page) {
+    const tp = Math.ceil(filteredUsers.length/PAGE_SIZE);
+    if (page<1||page>tp) return; currentPage=page; renderTable(); window.scrollTo({top:0,behavior:'smooth'});
+};
+
+/* ═══ DETAIL / DELETE ═══ */
+window.showDetail = function(code) { const u=allUsers.find(u=>u.registrationCode===code); if(u) showAttendeeDetail(u); };
+window.viewImage  = function(src)  { document.getElementById('imageFullView').src=src; document.getElementById('imageBackdrop').style.display='flex'; };
+window.closeImageView = function() { document.getElementById('imageBackdrop').style.display='none'; };
+
+window.deleteUser = function(code) {
+    showConfirm('🗑️','Delete Attendee',`Delete <strong>${code}</strong>? This cannot be undone.`, async () => {
+        try {
+            await window.deleteDoc(window.doc(window.db,'attendees',code));
+            allUsers = allUsers.filter(u=>u.registrationCode!==code);
+            applyFilters(); updateStats(); renderRecent();
+            toast(`✅ ${code} deleted`,'success');
+        } catch(e) { toast('❌ Failed to delete attendee','error'); }
+    });
+};
+
+window.confirmDeleteAll = function() {
+    showConfirm('☠️','Delete ALL Attendees','Permanently delete every attendee record. Are you absolutely sure?', async () => {
+        try {
+            await Promise.all(allUsers.map(u => window.deleteDoc(window.doc(window.db,'attendees',u.registrationCode))));
+            allUsers=[]; filteredUsers=[];
+            applyFilters(); updateStats(); renderRecent();
+            toast('✅ All attendees deleted','success');
+        } catch(e) { toast('❌ Failed to delete all attendees','error'); }
+    });
+};
+
+/* ═══ SETTINGS ═══ */
+window.saveSettings = async function() {
+    const eventName = document.getElementById('eventNameInput').value.trim();
+    const prefix    = document.getElementById('prefixInput').value.trim().toUpperCase();
+    if (!eventName||!prefix) { toast('⚠️ Please fill in both fields','error'); return; }
+    try {
+        await window.updateDoc(window.doc(window.db,'app_settings','current'), { eventName, registrationPrefix:prefix, updatedAt:new Date() });
+        toast('✅ Settings saved!','success');
+    } catch(e) { toast('❌ Failed to save settings','error'); }
+};
+
+/* ═══ EXPORT ═══ */
+window.exportCSV = function() {
+    if (!filteredUsers.length) { toast('⚠️ No data to export','error'); return; }
+    const h = ['Registration Code','Full Name','Phone Number','Role','Bio','Downloads','Registered Date','Has Photo'];
+    const r = filteredUsers.map(u => [u.registrationCode, u.fullName||'', u.phoneNumber||'', u.role||'', u.bio||'', u.downloadCount||0, u.createdAt?u.createdAt.toDate().toLocaleString():'', u.photoBase64?'Yes':'No']);
+    const csv = [h,...r].map(row=>row.map(c=>`"${String(c).replace(/"/g,'""')}"`).join(',')).join('\n');
+    const a = Object.assign(document.createElement('a'), { href:URL.createObjectURL(new Blob([csv],{type:'text/csv'})), download:`onboard3_${new Date().toISOString().split('T')[0]}.csv` });
+    a.click(); toast(`✅ Exported ${filteredUsers.length} records as CSV`,'success');
+};
+
+window.exportJSON = function() {
+    if (!filteredUsers.length) { toast('⚠️ No data to export','error'); return; }
+    const data = filteredUsers.map(u => ({ registrationCode:u.registrationCode, fullName:u.fullName||'', phoneNumber:u.phoneNumber||'', role:u.role||'', bio:u.bio||'', downloadCount:u.downloadCount||0, registeredAt:u.createdAt?u.createdAt.toDate().toISOString():null, hasPhoto:!!u.photoBase64 }));
+    const a = Object.assign(document.createElement('a'), { href:URL.createObjectURL(new Blob([JSON.stringify(data,null,2)],{type:'application/json'})), download:`onboard3_${new Date().toISOString().split('T')[0]}.json` });
+    a.click(); toast(`✅ Exported ${filteredUsers.length} records as JSON`,'success');
+};
+</script>
+</body>
+</html>

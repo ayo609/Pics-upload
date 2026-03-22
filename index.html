@@ -1,0 +1,608 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0, user-scalable=yes">
+<title>Onboard3 | I Will Be Attending</title>
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link href="https://fonts.googleapis.com/css2?family=Bebas+Neue&family=DM+Sans:ital,wght@0,300;0,400;0,500;0,600;1,300&family=Share+Tech+Mono&display=swap" rel="stylesheet">
+<script src="https://www.gstatic.com/firebasejs/9.22.2/firebase-app-compat.js"></script>
+<script src="https://www.gstatic.com/firebasejs/9.22.2/firebase-firestore-compat.js"></script>
+<script src="https://cdnjs.cloudflare.com/ajax/libs/html2canvas/1.4.1/html2canvas.min.js"></script>
+<script src="https://cdnjs.cloudflare.com/ajax/libs/qrcodejs/1.0.0/qrcode.min.js"></script>
+<style>
+:root {
+    --green:#00e64d; --gneon:#39ff8f; --gdark:#00b33c;
+    --black:#050a05; --surface:#0d1a0d; --surface2:#122012;
+    --border:rgba(0,230,77,0.15); --text:#e8ffe8; --muted:rgba(232,255,232,0.5);
+    --fh:'Bebas Neue',sans-serif; --fb:'DM Sans',sans-serif; --fm:'Share Tech Mono',monospace;
+}
+*{margin:0;padding:0;box-sizing:border-box;}
+body{font-family:var(--fb);background:var(--black);color:var(--text);min-height:100vh;overflow-x:hidden;}
+
+.bg-layer{position:fixed;inset:0;z-index:0;
+    background:radial-gradient(ellipse at 10% 0%,rgba(0,230,77,.18) 0%,transparent 55%),
+               radial-gradient(ellipse at 90% 100%,rgba(0,230,77,.12) 0%,transparent 55%),
+               radial-gradient(ellipse at 50% 50%,rgba(0,20,0,1) 0%,transparent 100%);
+    animation:bgP 8s ease-in-out infinite alternate;}
+@keyframes bgP{from{opacity:1}to{opacity:.7}}
+.bg-grid{position:fixed;inset:0;z-index:0;
+    background-image:linear-gradient(rgba(0,230,77,.04) 1px,transparent 1px),
+                     linear-gradient(90deg,rgba(0,230,77,.04) 1px,transparent 1px);
+    background-size:40px 40px;}
+
+.page-wrap{position:relative;z-index:1;max-width:480px;margin:0 auto;padding:0 0 80px;}
+
+/* HERO */
+.hero{position:relative;padding:36px 24px 0;text-align:center;overflow:hidden;}
+.hero-logo{display:inline-flex;align-items:center;gap:8px;margin-bottom:20px;animation:fdD .6s ease both;}
+.hero-dot{width:10px;height:10px;background:var(--green);border-radius:50%;box-shadow:0 0 10px var(--green);animation:blink 2s ease infinite;}
+@keyframes blink{0%,100%{opacity:1}50%{opacity:.3}}
+.hero-logo-text{font-family:var(--fh);font-size:1.5rem;letter-spacing:3px;color:var(--green);text-shadow:0 0 20px rgba(0,230,77,.5);}
+.hero-headline{position:relative;margin-bottom:4px;animation:fdD .7s ease .1s both;}
+.hero-i{display:block;font-family:var(--fh);font-size:5.5rem;line-height:1;color:var(--text);letter-spacing:4px;text-shadow:4px 4px 0 var(--gdark);}
+.hero-will-be{display:block;font-family:var(--fh);font-size:3.8rem;line-height:.95;color:var(--text);letter-spacing:2px;}
+.hero-attending{display:block;font-family:var(--fh);font-size:5rem;line-height:1;color:var(--green);letter-spacing:2px;text-shadow:0 0 30px rgba(0,230,77,.6),3px 3px 0 var(--gdark);animation:glow 3s ease-in-out infinite;}
+@keyframes glow{0%,100%{text-shadow:0 0 30px rgba(0,230,77,.6),3px 3px 0 var(--gdark)}50%{text-shadow:0 0 60px rgba(0,230,77,.9),3px 3px 0 var(--gdark)}}
+.hero-bar{position:absolute;left:24px;top:0;bottom:0;width:6px;background:linear-gradient(to bottom,var(--green),transparent);border-radius:3px;}
+.diamond{position:absolute;width:10px;height:10px;background:var(--green);transform:rotate(45deg);box-shadow:0 0 8px var(--green);}
+.d1{top:60px;right:30px;animation:fl 4s ease-in-out infinite;}
+.d2{top:120px;left:20px;width:6px;height:6px;animation:fl 5s ease-in-out 1s infinite;}
+@keyframes fl{0%,100%{transform:rotate(45deg) translateY(0)}50%{transform:rotate(45deg) translateY(-8px)}}
+@keyframes fdD{from{opacity:0;transform:translateY(-16px)}to{opacity:1;transform:translateY(0)}}
+@keyframes fdU{from{opacity:0;transform:translateY(20px)}to{opacity:1;transform:translateY(0)}}
+
+/* PASS CARD */
+.pass-section{padding:0 16px;margin-top:24px;animation:fdU .8s ease .2s both;}
+.pass-card{background:var(--surface);border:1.5px solid var(--border);border-radius:24px;overflow:hidden;box-shadow:0 0 0 1px rgba(0,230,77,.05),0 20px 60px rgba(0,0,0,.6),inset 0 1px 0 rgba(0,230,77,.1);position:relative;}
+.pass-card::before{content:'';position:absolute;top:0;left:10%;right:10%;height:1px;background:linear-gradient(90deg,transparent,var(--green),transparent);box-shadow:0 0 20px var(--green);}
+.pass-card::after{content:'';position:absolute;top:-100%;left:0;right:0;height:40%;background:linear-gradient(to bottom,transparent,rgba(0,230,77,.03),transparent);animation:scan 6s linear infinite;pointer-events:none;}
+@keyframes scan{to{top:200%}}
+
+/* PHOTO */
+.photo-area{position:relative;padding:24px 24px 0;display:flex;justify-content:center;}
+.photo-frame-outer{position:relative;width:200px;height:200px;}
+.photo-frame-outer::before{content:'';position:absolute;inset:-3px;border-radius:20px;background:conic-gradient(var(--green),var(--gdark),transparent,var(--green));animation:rot 4s linear infinite;z-index:0;}
+@keyframes rot{to{transform:rotate(360deg)}}
+.photo-frame-inner{position:relative;width:100%;height:100%;border-radius:18px;overflow:hidden;z-index:1;background:var(--surface2);cursor:pointer;}
+#avatarPreview{width:100%;height:100%;object-fit:cover;display:block;}
+.photo-hint{position:absolute;inset:0;background:rgba(0,20,0,.7);display:flex;flex-direction:column;align-items:center;justify-content:center;gap:6px;opacity:0;transition:opacity .2s;border-radius:18px;}
+.photo-frame-inner:hover .photo-hint{opacity:1;}
+.photo-hint span{font-size:1.8rem;}
+.photo-hint p{font-size:.72rem;font-weight:700;letter-spacing:1px;text-transform:uppercase;color:var(--green);}
+.corner{position:absolute;width:16px;height:16px;z-index:2;}
+.c-tl{top:-1px;left:-1px;border-top:2px solid var(--green);border-left:2px solid var(--green);border-radius:4px 0 0 0;}
+.c-tr{top:-1px;right:-1px;border-top:2px solid var(--green);border-right:2px solid var(--green);border-radius:0 4px 0 0;}
+.c-bl{bottom:-1px;left:-1px;border-bottom:2px solid var(--green);border-left:2px solid var(--green);border-radius:0 0 0 4px;}
+.c-br{bottom:-1px;right:-1px;border-bottom:2px solid var(--green);border-right:2px solid var(--green);border-radius:0 0 4px 0;}
+
+/* IDENTITY */
+.identity-block{padding:20px 24px 0;text-align:center;}
+#previewName{font-family:var(--fh);font-size:2.6rem;letter-spacing:2px;line-height:1;color:var(--text);}
+.role-pill{display:inline-block;margin-top:8px;background:rgba(0,230,77,.1);border:1px solid rgba(0,230,77,.3);padding:5px 18px;border-radius:30px;font-size:.82rem;font-weight:600;color:var(--green);}
+
+/* INFO STRIP */
+.info-strip{margin:20px 24px 0;background:var(--surface2);border:1px solid var(--border);border-radius:14px;padding:14px 16px;display:flex;align-items:center;justify-content:space-between;gap:8px;}
+.info-item{display:flex;align-items:center;gap:8px;flex:1;}
+.info-icon{font-size:1.1rem;flex-shrink:0;}
+.info-text{font-size:.72rem;line-height:1.3;color:var(--muted);}
+.info-text strong{display:block;color:var(--text);font-size:.78rem;font-weight:600;}
+.info-divider{width:1px;height:36px;background:var(--border);flex-shrink:0;}
+
+/* REG STRIP */
+.reg-strip{margin:12px 24px 0;background:rgba(0,230,77,.06);border:1px solid rgba(0,230,77,.2);border-radius:10px;padding:10px 14px;display:flex;align-items:center;justify-content:space-between;}
+.reg-label{font-size:.65rem;font-weight:700;letter-spacing:1px;text-transform:uppercase;color:var(--green);}
+#regCodeBadge{font-family:var(--fm);font-size:.85rem;color:var(--green);text-shadow:0 0 10px rgba(0,230,77,.4);}
+.card-qr{background:#fff;border-radius:8px;padding:4px;width:52px;height:52px;overflow:hidden;flex-shrink:0;}
+.card-qr canvas,.card-qr img{width:44px!important;height:44px!important;}
+
+/* EVENT FOOTER */
+.card-footer{margin:16px 24px 0;display:grid;grid-template-columns:1fr 1fr;gap:10px;}
+.card-footer-item{background:var(--surface2);border:1px solid var(--border);border-radius:12px;padding:10px 12px;display:flex;align-items:flex-start;gap:8px;}
+.card-footer-item .icon{font-size:1rem;margin-top:1px;flex-shrink:0;}
+.card-footer-item .label{font-size:.65rem;text-transform:uppercase;letter-spacing:.8px;color:var(--green);font-weight:700;}
+.card-footer-item .value{font-size:.78rem;color:var(--text);font-weight:500;margin-top:2px;line-height:1.3;}
+
+.register-bar{margin:12px 24px 24px;background:var(--green);border-radius:12px;padding:12px 16px;text-align:center;}
+.rb-label{font-size:.65rem;font-weight:700;letter-spacing:1px;text-transform:uppercase;color:var(--black);opacity:.7;}
+.rb-url{font-family:var(--fm);font-size:.8rem;color:var(--black);font-weight:700;}
+
+/* FORM */
+.form-section{padding:0 16px;margin-top:16px;animation:fdU .8s ease .35s both;}
+.form-card{background:var(--surface);border:1.5px solid var(--border);border-radius:24px;overflow:hidden;box-shadow:0 20px 60px rgba(0,0,0,.4);}
+.form-card-header{padding:20px 22px 16px;border-bottom:1px solid var(--border);display:flex;align-items:center;gap:10px;}
+.form-card-header .pulse{width:8px;height:8px;background:var(--green);border-radius:50%;box-shadow:0 0 8px var(--green);animation:blink 2s infinite;flex-shrink:0;}
+.form-card-header h3{font-family:var(--fh);font-size:1.2rem;letter-spacing:1px;}
+.form-body{padding:20px 22px;}
+
+/* RETURN BOX */
+.return-box{background:rgba(0,230,77,.05);border:1px solid rgba(0,230,77,.2);border-radius:12px;padding:14px;margin-bottom:20px;}
+.return-box-label{font-size:.72rem;font-weight:700;letter-spacing:.8px;text-transform:uppercase;color:var(--green);margin-bottom:8px;}
+.return-row{display:flex;gap:8px;}
+.return-row input{flex:1;background:var(--surface2);border:1.5px solid var(--border);border-radius:10px;padding:10px 12px;color:var(--text);font-family:var(--fm);font-size:.88rem;letter-spacing:1px;}
+.return-row input:focus{outline:none;border-color:var(--green);}
+.return-row input::placeholder{opacity:.4;}
+.return-row button{background:var(--green);border:none;border-radius:10px;padding:10px 16px;color:var(--black);font-weight:700;font-size:.82rem;cursor:pointer;}
+.return-row button:hover{background:var(--gneon);}
+
+/* CODE INFO */
+.code-info{background:rgba(0,230,77,.06);border-left:3px solid var(--green);border-radius:0 10px 10px 0;padding:10px 14px;margin-bottom:20px;font-size:.82rem;color:var(--muted);line-height:1.5;}
+.code-info strong{color:var(--green);}
+
+/* FORM GROUPS */
+.form-group{margin-bottom:16px;}
+.field-label{display:block;font-size:.68rem;font-weight:700;letter-spacing:1px;text-transform:uppercase;color:var(--green);margin-bottom:7px;opacity:.8;}
+.field-input{width:100%;background:var(--surface2);border:1.5px solid var(--border);border-radius:12px;padding:12px 16px;color:var(--text);font-size:.92rem;font-family:var(--fb);transition:border-color .2s,box-shadow .2s;-webkit-appearance:none;}
+.field-input:focus{outline:none;border-color:var(--green);box-shadow:0 0 0 3px rgba(0,230,77,.1);}
+.field-input::placeholder{opacity:.35;}
+textarea.field-input{resize:vertical;}
+
+/* PHOTO UPLOAD */
+.photo-upload-btn{width:100%;background:var(--surface2);border:1.5px dashed rgba(0,230,77,.3);border-radius:12px;padding:18px;cursor:pointer;text-align:center;transition:all .2s;color:var(--muted);font-size:.88rem;}
+.photo-upload-btn:hover{border-color:var(--green);color:var(--green);}
+.upload-icon{font-size:1.6rem;display:block;margin-bottom:4px;}
+#photoInput{display:none;}
+
+/* BUTTONS */
+.actions-grid{display:grid;grid-template-columns:1fr 1fr;gap:10px;margin-top:4px;}
+.action-btn{border:none;border-radius:14px;padding:14px 12px;font-size:.86rem;font-weight:700;font-family:var(--fb);cursor:pointer;display:flex;align-items:center;justify-content:center;gap:7px;transition:all .2s;}
+.action-btn:active{transform:scale(.97);}
+.action-btn:disabled{opacity:.5;cursor:not-allowed;transform:none;}
+.btn-download{grid-column:span 2;background:var(--green);color:var(--black);padding:16px;font-size:.95rem;font-weight:800;box-shadow:0 4px 20px rgba(0,230,77,.3);}
+.btn-download:hover:not(:disabled){background:var(--gneon);box-shadow:0 6px 30px rgba(0,230,77,.5);}
+.btn-whatsapp{background:rgba(37,211,102,.12);color:#25D366;border:1px solid rgba(37,211,102,.25);}
+.btn-whatsapp:hover:not(:disabled){background:rgba(37,211,102,.22);}
+.btn-share{background:rgba(0,230,77,.08);color:var(--green);border:1px solid var(--border);}
+.btn-share:hover:not(:disabled){background:rgba(0,230,77,.15);}
+
+/* SPINNER */
+.spinner{display:inline-block;width:16px;height:16px;border:2.5px solid rgba(0,0,0,.2);border-top-color:var(--black);border-radius:50%;animation:spin .7s linear infinite;}
+@keyframes spin{to{transform:rotate(360deg)}}
+
+/* TOAST */
+.toast-wrap{position:fixed;bottom:24px;left:50%;transform:translateX(-50%);z-index:9999;display:flex;flex-direction:column;align-items:center;gap:8px;pointer-events:none;}
+.toast{background:var(--surface);border:1px solid var(--border);color:var(--text);padding:11px 20px;border-radius:30px;font-size:.84rem;font-weight:500;white-space:nowrap;box-shadow:0 4px 20px rgba(0,0,0,.5);animation:tIn .3s cubic-bezier(.34,1.56,.64,1) forwards;border-left:3px solid transparent;}
+.toast.success{border-left-color:var(--green);}
+.toast.error{border-color:rgba(239,68,68,.4);border-left-color:#ef4444;}
+@keyframes tIn{from{opacity:0;transform:translateY(12px) scale(.95)}to{opacity:1;transform:translateY(0) scale(1)}}
+@keyframes tOut{from{opacity:1}to{opacity:0;transform:translateY(-8px)}}
+
+.site-footer{text-align:center;padding:24px 20px 0;font-size:.72rem;color:rgba(0,230,77,.3);letter-spacing:.5px;}
+
+@media(max-width:380px){
+    .hero-i{font-size:4.2rem;}
+    .hero-will-be{font-size:3rem;}
+    .hero-attending{font-size:3.8rem;}
+    .card-footer{grid-template-columns:1fr;}
+    #previewName{font-size:2rem;}
+}
+</style>
+</head>
+<body>
+<div class="bg-layer"></div>
+<div class="bg-grid"></div>
+<div class="page-wrap">
+
+    <div class="hero">
+        <div class="hero-bar"></div>
+        <div class="diamond d1"></div>
+        <div class="diamond d2"></div>
+        <div class="hero-logo">
+            <div class="hero-dot"></div>
+            <span class="hero-logo-text">ONBOARD3</span>
+            <div class="hero-dot"></div>
+        </div>
+        <div class="hero-headline">
+            <span class="hero-i">I</span>
+            <span class="hero-will-be">WILL BE</span>
+            <span class="hero-attending">ATTENDING</span>
+        </div>
+    </div>
+
+    <div class="pass-section">
+        <div class="pass-card" id="previewCard">
+            <div class="photo-area">
+                <div class="photo-frame-outer">
+                    <div class="corner c-tl"></div><div class="corner c-tr"></div>
+                    <div class="corner c-bl"></div><div class="corner c-br"></div>
+                    <div class="photo-frame-inner" id="avatarWrap">
+                        <img id="avatarPreview" src="data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' width='200' height='200' viewBox='0 0 24 24' fill='rgba(0,230,77,0.2)'%3E%3Cpath d='M12 12c2.21 0 4-1.79 4-4s-1.79-4-4-4-4 1.79-4 4 1.79 4 4 4zm0 2c-2.67 0-8 1.34-8 4v2h16v-2c0-2.66-5.33-4-8-4z'/%3E%3C/svg%3E" alt="Photo">
+                        <div class="photo-hint"><span>📷</span><p>Tap to change</p></div>
+                    </div>
+                </div>
+            </div>
+            <div class="identity-block">
+                <div id="previewName">YOUR NAME</div>
+                <div class="role-pill" id="previewRole">Your Role</div>
+            </div>
+            <div class="info-strip">
+                <div class="info-item">
+                    <span class="info-icon">📱</span>
+                    <div class="info-text"><strong id="previewPhone">+234 000 000 0000</strong>Phone Number</div>
+                </div>
+                <div class="info-divider"></div>
+                <div class="info-item">
+                    <span class="info-icon">💬</span>
+                    <div class="info-text" style="flex:1;"><strong id="previewBio" style="white-space:normal;font-size:.74rem;">Your bio here...</strong>Bio</div>
+                </div>
+            </div>
+            <div class="reg-strip">
+                <div>
+                    <div class="reg-label">Registration Code</div>
+                    <div id="regCodeBadge">---</div>
+                </div>
+                <div class="card-qr" id="qrContainer"></div>
+            </div>
+            <div class="card-footer">
+                <div class="card-footer-item">
+                    <span class="icon">📅</span>
+                    <div><div class="label">Date</div><div class="value" id="evDate">Loading...</div></div>
+                </div>
+                <div class="card-footer-item">
+                    <span class="icon">🕘</span>
+                    <div><div class="label">Time</div><div class="value" id="evTime">Loading...</div></div>
+                </div>
+                <div class="card-footer-item" style="grid-column:span 2;">
+                    <span class="icon">📍</span>
+                    <div><div class="label">Venue</div><div class="value" id="evVenue">Loading...</div></div>
+                </div>
+            </div>
+            <div class="register-bar">
+                <div class="rb-label">Click here to register</div>
+                <div class="rb-url" id="evLink">Loading...</div>
+            </div>
+        </div>
+    </div>
+
+    <div class="form-section">
+        <div class="form-card">
+            <div class="form-card-header">
+                <div class="pulse"></div>
+                <h3>CUSTOMIZE YOUR PASS</h3>
+            </div>
+            <div class="form-body">
+                <div class="return-box" id="returnSection">
+                    <div class="return-box-label">🔑 Already registered?</div>
+                    <div class="return-row">
+                        <input type="text" id="returnCodeInput" placeholder="e.g. ONB3-042" maxlength="20">
+                        <button id="loadCodeBtn">Load Card</button>
+                    </div>
+                </div>
+                <div class="code-info" id="regCodeInfo">⏳ Setting up your unique registration code...</div>
+                <div class="form-group">
+                    <label class="field-label">📸 Your Photo</label>
+                    <div class="photo-upload-btn" id="uploadBtn"><span class="upload-icon">🖼️</span>Tap to select from gallery</div>
+                    <input type="file" id="photoInput" accept="image/jpeg,image/png,image/jpg,image/webp">
+                </div>
+                <div class="form-group">
+                    <label class="field-label">👤 Full Name</label>
+                    <input type="text" class="field-input" id="nameInput" placeholder="Enter your full name" maxlength="60">
+                </div>
+                <div class="form-group">
+                    <label class="field-label">📱 Phone Number</label>
+                    <input type="tel" class="field-input" id="phoneInput" placeholder="+234 123 456 7890" maxlength="20">
+                </div>
+                <div class="form-group">
+                    <label class="field-label">💬 Bio / Tagline</label>
+                    <textarea class="field-input" id="bioInput" rows="2" placeholder="Tell us about yourself..." maxlength="120"></textarea>
+                </div>
+                <div class="form-group">
+                    <label class="field-label">🎭 Role / Position</label>
+                    <input type="text" class="field-input" id="roleInput" placeholder="Student, Organizer, Speaker..." maxlength="40">
+                </div>
+                <div class="actions-grid">
+                    <button class="action-btn btn-download" id="downloadBtn">⬇️ DOWNLOAD MY PASS</button>
+                    <button class="action-btn btn-whatsapp" id="whatsappBtn">
+                        <svg width="15" height="15" viewBox="0 0 24 24" fill="currentColor"><path d="M17.472 14.382c-.297-.149-1.758-.867-2.03-.967-.273-.099-.471-.148-.67.15-.197.297-.767.966-.94 1.164-.173.199-.347.223-.644.075-.297-.15-1.255-.463-2.39-1.475-.883-.788-1.48-1.761-1.653-2.059-.173-.297-.018-.458.13-.606.134-.133.298-.347.446-.52.149-.174.198-.298.298-.497.099-.198.05-.371-.025-.52-.075-.149-.669-1.612-.916-2.207-.242-.579-.487-.5-.669-.51-.173-.008-.371-.01-.57-.01-.198 0-.52.074-.792.372-.272.297-1.04 1.016-1.04 2.479 0 1.462 1.065 2.875 1.213 3.074.149.198 2.096 3.2 5.077 4.487.709.306 1.262.489 1.694.625.712.227 1.36.195 1.871.118.571-.085 1.758-.719 2.006-1.413.248-.694.248-1.289.173-1.413-.074-.124-.272-.198-.57-.347m-5.421 7.403h-.004a9.87 9.87 0 01-5.031-1.378l-.361-.214-3.741.982.998-3.648-.235-.374a9.86 9.86 0 01-1.51-5.26c.001-5.45 4.436-9.884 9.888-9.884 2.64 0 5.122 1.03 6.988 2.898a9.825 9.825 0 012.893 6.994c-.003 5.45-4.437 9.884-9.885 9.884m8.413-18.297A11.815 11.815 0 0012.05 0C5.495 0 .16 5.335.157 11.892c0 2.096.547 4.142 1.588 5.945L.057 24l6.305-1.654a11.882 11.882 0 005.683 1.448h.005c6.554 0 11.89-5.335 11.893-11.893a11.821 11.821 0 00-3.48-8.413z"/></svg>
+                        WhatsApp
+                    </button>
+                    <button class="action-btn btn-share" id="shareBtn">
+                        <svg width="15" height="15" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5"><circle cx="18" cy="5" r="3"/><circle cx="6" cy="12" r="3"/><circle cx="18" cy="19" r="3"/><line x1="8.59" y1="13.51" x2="15.42" y2="17.49"/><line x1="15.41" y1="6.51" x2="8.59" y2="10.49"/></svg>
+                        Share
+                    </button>
+                </div>
+            </div>
+        </div>
+    </div>
+    <div class="site-footer">ONBOARD3 &bull; UITH ILORIN &bull; 2026</div>
+</div>
+<div class="toast-wrap" id="toastWrap"></div>
+
+<script>
+// ── Firebase config ──
+firebase.initializeApp({
+    apiKey:            "AIzaSyBIQS5t2ApxcjI8gZMegi3tgpr5JfQKtJY",
+    authDomain:        "pics-upload-fe1c5.firebaseapp.com",
+    projectId:         "pics-upload-fe1c5",
+    storageBucket:     "pics-upload-fe1c5.firebasestorage.app",
+    messagingSenderId: "82424444503",
+    appId:             "1:82424444503:web:f98101cde123cc749ad512"
+});
+var db = firebase.firestore();
+
+// ── State ──
+var regCode        = null;
+var photoBase64    = null;
+var eventName      = 'Onboard3 Campus Meetup';
+var isSaving       = false;
+var saveTimeout    = null;
+var qrInstance     = null;
+
+// ── DOM ──
+var avatarImg    = document.getElementById('avatarPreview');
+var avatarWrap   = document.getElementById('avatarWrap');
+var previewName  = document.getElementById('previewName');
+var previewPhone = document.getElementById('previewPhone');
+var previewBio   = document.getElementById('previewBio');
+var previewRole  = document.getElementById('previewRole');
+var regCodeBadge = document.getElementById('regCodeBadge');
+var regCodeInfo  = document.getElementById('regCodeInfo');
+var nameInput    = document.getElementById('nameInput');
+var phoneInput   = document.getElementById('phoneInput');
+var bioInput     = document.getElementById('bioInput');
+var roleInput    = document.getElementById('roleInput');
+var photoInput   = document.getElementById('photoInput');
+var uploadBtn    = document.getElementById('uploadBtn');
+var downloadBtn  = document.getElementById('downloadBtn');
+var whatsappBtn  = document.getElementById('whatsappBtn');
+var shareBtn     = document.getElementById('shareBtn');
+var returnSec    = document.getElementById('returnSection');
+var returnInp    = document.getElementById('returnCodeInput');
+
+// ── Toast ──
+function toast(msg, type, dur) {
+    type = type || 'success';
+    dur  = dur  || 3000;
+    var el = document.createElement('div');
+    el.className = 'toast ' + type;
+    el.textContent = msg;
+    document.getElementById('toastWrap').appendChild(el);
+    setTimeout(function() {
+        el.style.animation = 'tOut .3s forwards';
+        setTimeout(function() { el.remove(); }, 300);
+    }, dur);
+}
+
+// ── Image compress ──
+function compressImage(file, cb) {
+    var reader = new FileReader();
+    reader.onload = function(e) {
+        var img = new Image();
+        img.onload = function() {
+            var maxW = 600, w = img.width, h = img.height;
+            if (w > maxW) { h = Math.round(h * maxW / w); w = maxW; }
+            var canvas = document.createElement('canvas');
+            canvas.width = w; canvas.height = h;
+            canvas.getContext('2d').drawImage(img, 0, 0, w, h);
+            cb(canvas.toDataURL('image/jpeg', 0.78));
+        };
+        img.src = e.target.result;
+    };
+    reader.readAsDataURL(file);
+}
+
+// ── QR code ──
+function generateQR(text) {
+    var container = document.getElementById('qrContainer');
+    container.innerHTML = '';
+    if (!text || text === '---') return;
+    try {
+        new QRCode(container, { text: text, width: 44, height: 44, colorDark: '#050a05', colorLight: '#ffffff', correctLevel: QRCode.CorrectLevel.M });
+    } catch(e) {}
+}
+
+// ── Update live preview ──
+function updatePreview() {
+    previewName.textContent  = (nameInput.value.trim()  || 'YOUR NAME').toUpperCase();
+    previewPhone.textContent = phoneInput.value.trim()  || '+234 000 000 0000';
+    previewBio.textContent   = bioInput.value.trim()    || 'Your bio here...';
+    previewRole.textContent  = roleInput.value.trim()   || 'Your Role';
+}
+
+// ── Debounced save ──
+function debouncedSave() {
+    updatePreview();
+    clearTimeout(saveTimeout);
+    saveTimeout = setTimeout(function() {
+        if (regCode) saveUserData(true);
+    }, 1500);
+}
+
+// ── Load event settings from Firestore ──
+function loadEventSettings() {
+    db.collection('app_settings').doc('current').get().then(function(snap) {
+        var d = snap.exists ? snap.data() : {};
+        eventName = d.eventName || 'Onboard3 Campus Meetup';
+
+        document.getElementById('evDate').textContent  = d.eventDate  || 'Sat. 7th March, 2026';
+        document.getElementById('evTime').textContent  = d.eventTime  || '9:00am WAT';
+        document.getElementById('evVenue').textContent = d.eventVenue || 'UITH School Complex, Amilegbe, Along Maraba Road';
+        document.getElementById('evLink').textContent  = d.eventLink  || 'https://onboard3.app/events';
+
+    }).catch(function(e) {
+        console.error('Settings load error:', e);
+        document.getElementById('evDate').textContent  = 'Sat. 7th March, 2026';
+        document.getElementById('evTime').textContent  = '9:00am WAT';
+        document.getElementById('evVenue').textContent = 'UITH School Complex, Amilegbe';
+        document.getElementById('evLink').textContent  = 'https://onboard3.app/events';
+    });
+}
+
+// ── Generate unique reg code using transaction ──
+function generateRegistrationCode() {
+    var settingsRef = db.collection('app_settings').doc('current');
+    return db.runTransaction(function(tx) {
+        return tx.get(settingsRef).then(function(snap) {
+            var prefix = 'ONB3', lastNum = 0;
+            if (snap.exists) {
+                prefix  = snap.data().registrationPrefix || 'ONB3';
+                lastNum = snap.data().lastCodeNumber     || 0;
+            }
+            var n = lastNum + 1;
+            var code = prefix + '-' + String(n).padStart(3, '0');
+            tx.set(settingsRef, { lastCodeNumber: n, updatedAt: new Date() }, { merge: true });
+            return code;
+        });
+    }).catch(function(e) {
+        console.error('Code gen error:', e);
+        return 'TEMP-' + Date.now();
+    });
+}
+
+// ── Save user data to Firestore ──
+function saveUserData(silent) {
+    if (!regCode || isSaving) return;
+    isSaving = true;
+    db.collection('attendees').doc(regCode).set({
+        registrationCode: regCode,
+        fullName:         nameInput.value.trim()  || '',
+        phoneNumber:      phoneInput.value.trim() || '',
+        bio:              bioInput.value.trim()   || '',
+        role:             roleInput.value.trim()  || '',
+        photoBase64:      photoBase64             || null,
+        updatedAt:        firebase.firestore.FieldValue.serverTimestamp()
+    }, { merge: true }).then(function() {
+        if (!silent) toast('✓ Saved!', 'success', 2000);
+    }).catch(function(e) {
+        console.error('Save error:', e);
+        toast('⚠️ Error saving: ' + e.message, 'error');
+    }).finally(function() {
+        isSaving = false;
+    });
+}
+
+// ── Photo upload ──
+uploadBtn.addEventListener('click',   function() { photoInput.click(); });
+avatarWrap.addEventListener('click',  function() { photoInput.click(); });
+
+photoInput.addEventListener('change', function(e) {
+    var file = e.target.files[0];
+    if (!file || !file.type.startsWith('image/')) return;
+    if (file.size > 10 * 1024 * 1024) { toast('⚠️ Image too large (max 10MB)', 'error'); return; }
+    toast('📤 Processing image...');
+    compressImage(file, function(base64) {
+        photoBase64 = base64;
+        avatarImg.src = base64;
+        saveUserData(true);
+        toast('✓ Photo saved!', 'success');
+    });
+});
+
+// ── Download card ──
+downloadBtn.addEventListener('click', function() {
+    downloadBtn.innerHTML = '<span class="spinner"></span> Generating...';
+    downloadBtn.disabled  = true;
+    html2canvas(document.getElementById('previewCard'), {
+        scale: 3, backgroundColor: '#0d1a0d', useCORS: true, logging: false
+    }).then(function(canvas) {
+        var a = document.createElement('a');
+        a.download = 'onboard3_' + (regCode || 'pass') + '.png';
+        a.href = canvas.toDataURL('image/png');
+        a.click();
+        // Update download count
+        if (regCode) {
+            db.collection('attendees').doc(regCode).set({
+                downloadCount:  firebase.firestore.FieldValue.increment(1),
+                lastDownloadAt: firebase.firestore.FieldValue.serverTimestamp()
+            }, { merge: true });
+        }
+        toast('✓ Pass downloaded!', 'success');
+    }).catch(function(e) {
+        toast('⚠️ Download failed', 'error');
+    }).finally(function() {
+        downloadBtn.innerHTML = '⬇️ DOWNLOAD MY PASS';
+        downloadBtn.disabled  = false;
+    });
+});
+
+// ── WhatsApp share ──
+whatsappBtn.addEventListener('click', function() {
+    var name = nameInput.value.trim() || 'Someone';
+    var role = roleInput.value.trim() || '';
+    var code = regCode || '---';
+    var text = '🎉 *' + name + '* will be attending *' + eventName + '*!\n🎭 Role: ' + role + '\n🔖 Code: *' + code + '*\n\n_Digital Pass by Onboard3_';
+    window.open('https://wa.me/?text=' + encodeURIComponent(text), '_blank');
+});
+
+// ── Native share ──
+shareBtn.addEventListener('click', function() {
+    var name = nameInput.value.trim() || 'Someone';
+    var code = regCode || '---';
+    var text = name + ' will be attending ' + eventName + '! Code: ' + code;
+    if (navigator.share) {
+        navigator.share({ title: 'My Onboard3 Pass', text: text }).catch(function() {});
+    } else {
+        navigator.clipboard.writeText(text).then(function() {
+            toast('✓ Copied to clipboard!', 'success');
+        }).catch(function() {
+            toast('⚠️ Sharing not supported', 'error');
+        });
+    }
+});
+
+// ── Load by existing code ──
+document.getElementById('loadCodeBtn').addEventListener('click', function() {
+    var code = returnInp.value.trim().toUpperCase();
+    if (!code) { toast('Enter your registration code', 'error'); return; }
+    toast('🔍 Looking up your card...');
+    db.collection('attendees').doc(code).get().then(function(snap) {
+        if (snap.exists) {
+            var d = snap.data();
+            regCode = code;
+            if (d.fullName)    nameInput.value  = d.fullName;
+            if (d.phoneNumber) phoneInput.value = d.phoneNumber;
+            if (d.bio)         bioInput.value   = d.bio;
+            if (d.role)        roleInput.value  = d.role;
+            if (d.photoBase64) { photoBase64 = d.photoBase64; avatarImg.src = d.photoBase64; }
+            regCodeBadge.textContent = code;
+            regCodeInfo.innerHTML    = '✅ Loaded: <strong>' + code + '</strong> — edit below to update your pass.';
+            updatePreview();
+            generateQR(code);
+            returnSec.style.display = 'none';
+            toast('✓ Card loaded!', 'success');
+        } else {
+            toast('⚠️ Code not found. Check and try again.', 'error');
+        }
+    }).catch(function(e) {
+        toast('⚠️ Error loading card', 'error');
+    });
+});
+
+// ── Form listeners ──
+nameInput.addEventListener('input',  debouncedSave);
+phoneInput.addEventListener('input', debouncedSave);
+bioInput.addEventListener('input',   debouncedSave);
+roleInput.addEventListener('input',  debouncedSave);
+
+// ── Initialize ──
+function init() {
+    loadEventSettings();
+    generateRegistrationCode().then(function(code) {
+        regCode = code;
+        regCodeBadge.textContent = code;
+        regCodeInfo.innerHTML    = '✅ Your code: <strong>' + code + '</strong> — save it to return later!';
+        generateQR(code);
+
+        // Create initial record
+        db.collection('attendees').doc(code).set({
+            registrationCode: code,
+            createdAt:        firebase.firestore.FieldValue.serverTimestamp(),
+            downloadCount:    0,
+            fullName:         '',
+            phoneNumber:      '',
+            bio:              '',
+            role:             '',
+            photoBase64:      null
+        }, { merge: true }).then(function() {
+            toast('✓ Ready! Fill in your details below', 'success');
+        }).catch(function(e) {
+            console.error('Init record error:', e);
+            toast('✓ Ready! Fill in your details below', 'success');
+        });
+    });
+}
+
+init();
+</script>
+</body>
+</html>
